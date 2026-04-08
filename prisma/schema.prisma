@@ -1,0 +1,467 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH & USERS
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  nom           String
+  identifiant   String    @unique
+  motDePasse    String
+  email         String    @unique
+  role          Role      @relation(fields: [roleCode], references: [code])
+  roleCode      String
+  actif         Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  anomaliesCreees     Anomalie[]       @relation("AnomalieUtilisateur")
+  anomaliesAssignees  Anomalie[]       @relation("AnomalieResponsable")
+  documentsCompta     Document[]       @relation("DocumentComptabilise")
+  relancesEffectuees  Relance[]
+  tachesCloture       TacheCloture[]
+  auditLogs           AuditLog[]
+  riskProfile         UserRiskProfile?
+
+  @@map("users")
+}
+
+model Role {
+  code        String   @id
+  label       String
+  niveau      String
+  isSystem    Boolean  @default(false)  // Rôle système non modifiable
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+// Permissions par fonctionnalité
+model Permission {
+  id          String   @id @default(cuid())
+  module      String   // dashboard, documents, banque, tresorerie, etc.
+  action      String   // lecture, saisie, modification, validation, correction, cloture, export, historique, acces_ia, parametrage
+  label       String   // Libellé affiché (ex: "Documents - Lecture", "Banque - Validation")
+  description String?  // Description de la permission
+  roles       RolePermission[]
+
+  @@unique([module, action])  // Une seule permission par module+action
+  @@map("permissions")
+}
+
+// Table de liaison Role <-> Permission (many-to-many)
+model RolePermission {
+  role         Role       @relation(fields: [roleCode], references: [code], onDelete: Cascade)
+  roleCode     String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId String
+  grantedAt    DateTime   @default(now())
+
+  @@id([roleCode, permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================================
+// TIERS (CLIENTS & FOURNISSEURS)
+// ============================================================
+
+model Client {
+  id                String   @id @default(cuid())
+  codeX3            String   @unique
+  raisonSociale     String
+  secteur           String
+  pole              String   // OE, HF, OC, BC
+  commercial        String
+  delaiContractuel  Int      @default(30)
+  encours           Float    @default(0)
+  echeanceEchue     Float    @default(0)
+  retardMoyen       Int      @default(0)
+  scoreRisque       Int      @default(0)
+  niveauRelance     Int      @default(0)
+  statut            String   @default("Actif") // Actif, Surveillé, Contentieux, Bloqué
+  dernierPaiement   DateTime?
+  montantDernierPaiement Float @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  documents         Document[]
+  echeancier        EcheancierClient[]
+  relances          Relance[]
+
+  @@map("clients")
+}
+
+model Fournisseur {
+  id            String   @id @default(cuid())
+  codeX3        String   @unique
+  raisonSociale String
+  secteur       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  documents     Document[]
+
+  @@map("fournisseurs")
+}
+
+// ============================================================
+// DOCUMENTS & OCR
+// ============================================================
+
+model Document {
+  id                String    @id @default(cuid())
+  type              String    // FAC_FRN, FAC_CLI, AV_DEB, AV_CRE, BQ_REL, OD, PC, PRV_REG
+  reference         String
+  tiersNom          String
+  client            Client?   @relation(fields: [clientId], references: [id])
+  clientId          String?
+  fournisseur       Fournisseur? @relation(fields: [fournisseurId], references: [id])
+  fournisseurId     String?
+  dateDoc           DateTime
+  montantHt         Float
+  montantTva        Float
+  montantTtc        Float
+  devise            String    @default("FCFA")
+  journal           String
+  pieceX3           String?
+  comptabilisePar   User?     @relation("DocumentComptabilise", fields: [utilisateurComptaId], references: [id])
+  utilisateurComptaId String?
+  dateCompta        DateTime?
+  delaiJours        Int       @default(0)
+  statut            String    @default("non_comptabilise") // conforme, ecart, critique, non_comptabilise
+  anomalies         Json      @default("[]") // Array of anomaly descriptions
+  recoIa            String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("documents")
+}
+
+// ============================================================
+// BANQUE & RAPPROCHEMENT
+// ============================================================
+
+model Banque {
+  id        String   @id @default(cuid())
+  nom       String
+  code      String   @unique
+  comptes   CompteBancaire[]
+
+  @@map("banques")
+}
+
+model CompteBancaire {
+  id                  String   @id @default(cuid())
+  banque              Banque   @relation(fields: [banqueId], references: [id])
+  banqueId            String
+  libelle             String
+  numero              String
+  compteOhada         String
+  soldeComptable      Float    @default(0)
+  soldeReleve         Float    @default(0)
+  tauxRapprochement   Float    @default(0)
+  nbNonRapproches     Int      @default(0)
+  dateReleve          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  mouvements          MouvementBancaire[]
+
+  @@map("comptes_bancaires")
+}
+
+model MouvementBancaire {
+  id            String         @id @default(cuid())
+  compte        CompteBancaire @relation(fields: [compteId], references: [id])
+  compteId      String
+  date          DateTime
+  libelle       String
+  debit         Float          @default(0)
+  credit        Float          @default(0)
+  rapproche     Boolean        @default(false)
+  suggestionIa  String?
+  createdAt     DateTime       @default(now())
+
+  @@map("mouvements_bancaires")
+}
+
+// ============================================================
+// TRÉSORERIE
+// ============================================================
+
+model PrevisionTresorerie {
+  id              String   @id @default(cuid())
+  semaine         String   // S14, S15, S16, S17
+  dateDebut       DateTime
+  dateFin         DateTime
+  soldeOuverture  Float    @default(0)
+  encaissements   Float    @default(0)
+  decaissements   Float    @default(0)
+  soldeFermeture  Float    @default(0)
+  tension         Int      @default(0) // 0-100
+  createdAt       DateTime @default(now())
+
+  @@map("previsions_tresorerie")
+}
+
+// ============================================================
+// ANOMALIES & AUDIT
+// ============================================================
+
+model Anomalie {
+  id              String   @id @default(cuid())
+  categorie       String   // DOC, IMP, FISC, CONF, FRAUDE, FACT, LETT, SEP, BQ, PROV, CTRL, ANAL
+  gravite         String   // critique, eleve, moyen, faible
+  titre           String
+  detail          String   @db.Text
+  utilisateur     User?    @relation("AnomalieUtilisateur", fields: [utilisateurId], references: [id])
+  utilisateurId   String?
+  impact          Float?
+  dateDetection   DateTime
+  source          String
+  responsable     User?    @relation("AnomalieResponsable", fields: [responsableId], references: [id])
+  responsableId   String?
+  statut          String   @default("ouvert") // ouvert, en_cours, resolu
+  actionCorrective String  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("anomalies")
+}
+
+model CategorieAnomalie {
+  code  String @id
+  label String
+
+  @@map("categories_anomalies")
+}
+
+model UserRiskProfile {
+  id              String @id @default(cuid())
+  user            User   @relation(fields: [utilisateurId], references: [id])
+  utilisateurId   String @unique
+  nom             String
+  score           Int    @default(0)
+  totalAnomalies  Int    @default(0)
+  critiques       Int    @default(0)
+  elevees         Int    @default(0)
+  moyennes        Int    @default(0)
+  faibles         Int    @default(0)
+  updatedAt       DateTime @updatedAt
+
+  @@map("user_risk_profiles")
+}
+
+// ============================================================
+// RECOUVREMENT
+// ============================================================
+
+model EcheancierClient {
+  id            String   @id @default(cuid())
+  client        Client   @relation(fields: [clientId], references: [id])
+  clientId      String
+  facture       String
+  dateEcheance  DateTime
+  montant       Float
+  retard        Int      @default(0)
+  statut        String   @default("a_echoir") // a_echoir, echue
+  promesse      DateTime?
+  action        String?
+  createdAt     DateTime @default(now())
+
+  @@map("echeancier_clients")
+}
+
+model Relance {
+  id          String   @id @default(cuid())
+  client      Client   @relation(fields: [clientId], references: [id])
+  clientId    String
+  date        DateTime
+  niveau      Int      @default(1)
+  canal       String   // Email, Téléphone, Courrier, Mise en demeure, Contentieux
+  resultat    String
+  responsable User     @relation(fields: [responsableId], references: [id])
+  responsableId String
+  createdAt   DateTime @default(now())
+
+  @@map("relances")
+}
+
+model NiveauRelance {
+  niveau  Int    @id
+  label   String
+  delai   String
+  ton     String
+  action  String
+
+  @@map("niveaux_relance")
+}
+
+// ============================================================
+// CLÔTURE MENSUELLE
+// ============================================================
+
+model TacheCloture {
+  id            String   @id @default(cuid())
+  categorie     String   // Achats, Ventes, Banque, Fiscal, Paie, Stocks, Analytique, Contrôle
+  description   String
+  responsable   User     @relation(fields: [responsableId], references: [id])
+  responsableId String
+  echeance      DateTime
+  statut        String   @default("non_demarre") // non_demarre, en_cours, en_attente, termine, bloquant
+  blocage       String   @default("non_bloquant") // bloquant_cloture, non_bloquant
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  dsfDependances DsfTableau[] @relation("DsfDependances")
+
+  @@map("taches_cloture")
+}
+
+// ============================================================
+// DSF (DÉCLARATION STATISTIQUE ET FISCALE)
+// ============================================================
+
+model DsfTableau {
+  id          String   @id @default(cuid())
+  numero      Int      @unique
+  intitule    String
+  statut      String   @default("a_verifier") // pret, a_verifier, fragile, bloque
+  fiabilite   Int      @default(50) // 0-100
+  poids       Int      @default(1) // 1, 2, 3
+  remarque    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dependances TacheCloture[] @relation("DsfDependances")
+
+  @@map("dsf_tableaux")
+}
+
+// ============================================================
+// FISCALITÉ
+// ============================================================
+
+model EcheanceFiscale {
+  id                String   @id @default(cuid())
+  type              String   // TVA, Acompte IS, DIPE, AIS, CNPS, etc.
+  periode           String
+  echeance          DateTime
+  montantEstime     Float    @default(0)
+  montantProvisionne Float   @default(0)
+  urgence           Int      @default(30) // jours restants
+  statut            String   @default("a_preparer") // a_preparer, en_cours, pret, depose
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("echeances_fiscales")
+}
+
+// ============================================================
+// ANALYTIQUE
+// ============================================================
+
+model AnalytiquePole {
+  id              String @id @default(cuid())
+  pole            String @unique // OE, HF, OC, BC
+  ca              Float  @default(0)
+  coutMatiere     Float  @default(0)
+  coutMo          Float  @default(0)
+  coutMachine     Float  @default(0)
+  fraisGeneraux   Float  @default(0)
+  margeStandard   Float  @default(0) // % budget
+  topClient       String?
+  caTopClient     Float  @default(0)
+
+  @@map("analytique_poles")
+}
+
+model Pole {
+  code    String @id
+  label   String
+  color   String
+
+  @@map("poles")
+}
+
+// ============================================================
+// PARAMÉTRAGE
+// ============================================================
+
+model Journal {
+  code  String @id
+  label String
+
+  @@map("journaux")
+}
+
+model RegleAlerte {
+  id       String  @id @default(cuid())
+  numero   Int     @unique
+  label    String
+  seuil    String
+  gravite  String  // Critique, Élevé, Moyen
+  actif    Boolean @default(true)
+
+  @@map("regles_alertes")
+}
+
+model ConfigIA {
+  id          String @id @default("default")
+  apiKey      String @default("")
+  model       String @default("claude-sonnet-4-20250514")
+  temperature Float  @default(0.3)
+  maxTokens   Int    @default(2048)
+
+  @@map("config_ia")
+}
+
+// ============================================================
+// HISTORIQUE & AUDIT LOGS
+// ============================================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  type        String   // connexion, validation, correction, export
+  utilisateur User     @relation(fields: [utilisateurId], references: [id])
+  utilisateurId String
+  date        DateTime @default(now())
+  detail      String
+  ip          String   @default("0.0.0.0")
+
+  @@map("audit_logs")
+}
+
+// ============================================================
+// DONNÉES MENSUELLES (pour graphiques)
+// ============================================================
+
+model DonneesMensuelles {
+  id          String @id @default(cuid())
+  mois        String
+  ca          Float  @default(0)
+  charges     Float  @default(0)
+  resultat    Float  @default(0)
+  tresorerie  Float  @default(0)
+
+  @@map("donnees_mensuelles")
+}
+
+model AnomaliesMensuelles {
+  id    String @id @default(cuid())
+  mois  String
+  count Int    @default(0)
+
+  @@map("anomalies_mensuelles")
+}

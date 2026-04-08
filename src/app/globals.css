@@ -7,15 +7,15 @@
    ============================================================ */
 
 :root {
-    --bg-body: #0B1219;
-    --bg-main: #0F1923;
-    --bg-surface: #1A2B3C;
-    --bg-card: #1E3448;
-    --bg-card-hover: #243D54;
-    --bg-input: #152231;
-    --bg-sidebar: #0A1018;
-    --bg-sidebar-hover: #131E2C;
-    --bg-sidebar-active: #1A2B3C;
+    --bg-body: #060D14;
+    --bg-main: #0A1520;
+    --bg-surface: #162A3E;
+    --bg-card: #1C3A56;
+    --bg-card-hover: #264D6A;
+    --bg-input: #0E1C2C;
+    --bg-sidebar: #040A10;
+    --bg-sidebar-hover: #0E1E30;
+    --bg-sidebar-active: #162A3E;
     --bg-modal-overlay: rgba(0, 0, 0, 0.65);
     --primary: #10B981;
     --primary-light: #34D399;
@@ -54,12 +54,12 @@
 /* Light theme */
 
 [data-theme="light"] {
-    --bg-body: #F1F5F9;
-    --bg-main: #F8FAFC;
+    --bg-body: #E2E8F0;
+    --bg-main: #F1F5F9;
     --bg-surface: #FFFFFF;
     --bg-card: #FFFFFF;
-    --bg-card-hover: #F1F5F9;
-    --bg-input: #F1F5F9;
+    --bg-card-hover: #E2E8F0;
+    --bg-input: #E2E8F0;
     --bg-modal-overlay: rgba(0, 0, 0, 0.35);
     --primary: #059669;
     --primary-dark: #047857;

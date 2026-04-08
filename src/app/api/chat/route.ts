@@ -34,14 +34,19 @@ export async function POST(req: NextRequest) {
       authHeaders['Authorization'] = `Basic ${credentials}`;
     }
 
+    // Extraire uniquement le dernier message utilisateur
+    const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user');
+    const userMessage = lastUserMessage?.content || '';
+
     // Call n8n webhook
     console.log('Appel n8n webhook:', webhookUrl);
+    console.log('Message envoyé:', userMessage);
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: authHeaders,
       body: JSON.stringify({
         system: systemPrompt,
-        messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
+        message: userMessage,
       }),
     });
 

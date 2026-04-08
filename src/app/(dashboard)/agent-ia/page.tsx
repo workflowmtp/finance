@@ -28,6 +28,7 @@ export default function AgentIAPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('daf');
+  const [isN8nConnected, setIsN8nConnected] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: `**Bonjour ! Je suis FinanceAdvisor** 🤖\n\nVotre assistant financier intelligent pour MULTIPRINT S.A.\n\n**Situation flash — Mars 2025 :**\n• CA : ${formatCompact(kpis.ca)} • Trésorerie : ${formatCompact(kpis.tresorerie)}\n• Anomalies critiques : ${kpis.anomaliesCritiques} • Clôture : ${kpis.scoreCloture}% • DSF : ${kpis.scoreDSF}%\n\nPosez votre question ci-dessous.` }
   ]);
@@ -50,14 +51,22 @@ export default function AgentIAPage() {
       const data = await res.json();
       
       if (res.ok && data.text) {
+        // Si mode local dans la réponse, c'est que n8n n'est pas configuré
+        if (data.mode === 'local') {
+          setIsN8nConnected(false);
+        } else {
+          setIsN8nConnected(true);
+        }
         setMessages(prev => [...prev, { role: 'assistant', content: data.text }]);
       } else {
         // Fallback local si l'API échoue
+        setIsN8nConnected(false);
         const localResponse = generateLocalResponse(text);
         setMessages(prev => [...prev, { role: 'assistant', content: localResponse }]);
       }
     } catch (error) {
       // Fallback local en cas d'erreur
+      setIsN8nConnected(false);
       const localResponse = generateLocalResponse(text);
       setMessages(prev => [...prev, { role: 'assistant', content: localResponse }]);
     } finally {
@@ -124,8 +133,17 @@ export default function AgentIAPage() {
         ))}
         {/* API Status */}
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs" style={{ marginLeft: 'auto', background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)' }} />
-          <span className="text-warning">Mode local</span>
+          {isN8nConnected ? (
+            <>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />
+              <span className="text-success">n8n connecté</span>
+            </>
+          ) : (
+            <>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)' }} />
+              <span className="text-warning">Mode local</span>
+            </>
+          )}
         </div>
       </div>
 

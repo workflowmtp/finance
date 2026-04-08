@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [identifiant, setIdentifiant] = useState('');
@@ -31,10 +32,10 @@ export default function LoginPage() {
   };
 
   const quickLogins = [
-    { label: 'Admin', id: 'admin', pw: 'admin' },
-    { label: 'DG', id: 'dg', pw: 'dg' },
-    { label: 'DAF', id: 'daf', pw: 'daf' },
-    { label: 'Chef comptable', id: 'chef', pw: 'chef' },
+    { label: 'Admin', id: 'admin', pw: 'Admin@1234' },
+    { label: 'DG', id: 'dg', pw: 'Dg@1234' },
+    { label: 'DAF', id: 'daf', pw: 'Daf@1234' },
+    { label: 'Chef', id: 'chef', pw: 'Chef@1234' },
   ];
 
   return (
@@ -104,6 +105,11 @@ export default function LoginPage() {
               </button>
             ))}
           </div>
+        </div>
+        <div className="mt-4 text-center">
+          <Link href="/register" className="text-sm text-emerald-400 hover:underline">
+            Pas de compte ? S'inscrire
+          </Link>
         </div>
       </div>
     </div>

@@ -68,24 +68,23 @@ export default function AgentIAPage() {
       const data = await res.json();
       
       if (res.ok && data.text) {
-        // Si mode local dans la réponse, c'est que n8n n'est pas configuré
+        // Mettre à jour le statut de connexion n8n
         if (data.mode === 'local') {
           setIsN8nConnected(false);
         } else {
           setIsN8nConnected(true);
         }
+        // Toujours afficher la réponse (y compris les erreurs n8n)
         setMessages(prev => [...prev, { role: 'assistant', content: data.text, time: getTimeStr() }]);
       } else {
-        // Fallback local si l'API échoue
+        // Erreur côté serveur Next.js
         setIsN8nConnected(false);
-        const localResponse = generateLocalResponse(text);
-        setMessages(prev => [...prev, { role: 'assistant', content: localResponse, time: getTimeStr() }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: `**Erreur serveur** ⚠️\n\n${data.error || 'Impossible de contacter l\'API.'}\n\nVérifiez la configuration et réessayez.`, time: getTimeStr() }]);
       }
     } catch (error) {
-      // Fallback local en cas d'erreur
+      // Erreur réseau
       setIsN8nConnected(false);
-      const localResponse = generateLocalResponse(text);
-      setMessages(prev => [...prev, { role: 'assistant', content: localResponse, time: getTimeStr() }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: `**Erreur réseau** ⚠️\n\nImpossible de joindre le serveur.\n\nVérifiez votre connexion et réessayez.`, time: getTimeStr() }]);
     } finally {
       setLoading(false);
     }

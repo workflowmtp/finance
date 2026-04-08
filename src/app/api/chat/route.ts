@@ -50,9 +50,15 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Erreur webhook:', response.status, errorText);
-      // Fallback local au lieu d'erreur 500
-      const localResponse = generateLocalResponse(messages);
-      return NextResponse.json({ text: localResponse, mode: 'local' });
+      // Afficher l'erreur n8n a l'utilisateur
+      let errorMsg = '';
+      try {
+        const errData = JSON.parse(errorText);
+        errorMsg = errData.message || errData.error || errorText;
+      } catch {
+        errorMsg = errorText;
+      }
+      return NextResponse.json({ text: `**Erreur n8n (${response.status})** \u26A0\uFE0F\n\n${errorMsg}\n\nV\u00E9rifiez votre workflow n8n et r\u00E9essayez.`, mode: 'n8n-error' });
     }
 
     // Parse la réponse n8n

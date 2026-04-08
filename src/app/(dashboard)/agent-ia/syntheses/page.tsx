@@ -28,8 +28,8 @@ export default function SynthesesPage() {
             <span className="widget-title">{s.icon} {s.titre}</span>
             <span className="badge badge-en-cours">{s.mode}</span>
           </div>
-          <div className="text-sm p-4" style={ lineHeight: 1.8 }>{s.contenu}</div>
-          <div className="flex justify-between items-center p-3" style={ borderTop: '1px solid var(--border-light)' }>
+          <div className="text-sm p-4" style={{ lineHeight: 1.8 }}>{s.contenu}</div>
+          <div className="flex justify-between items-center p-3" style={{ borderTop: '1px solid var(--border-light)' }}>
             <span className="text-xs text-muted">Généré automatiquement</span>
             <div className="flex gap-2">
               <button className="btn btn-sm btn-secondary" onClick={() => router.push(s.href)}>Module →</button>

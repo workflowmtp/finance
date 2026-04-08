@@ -39,7 +39,7 @@ export default function AgentIAPage() {
   return (
     <div>
       <PageHeader breadcrumb="Agent IA ▸ Chat" title="🤖 Agent IA FinanceAdvisor"
-        actions={<select className="filter-select" style={ minWidth: 160 }>
+        actions={<select className="filter-select" style={{ minWidth: 160 }}>
           <option>Mode Synthèse DAF</option><option>Mode Synthèse DG</option><option>Mode Pédagogique</option>
           <option>Mode Audit détaillé</option><option>Mode Plan d&apos;action</option>
         </select>} />
@@ -55,9 +55,9 @@ export default function AgentIAPage() {
           { label: 'DSF', value: `${kpis.scoreDSF}%`, color: 'var(--info)', href: '/dsf/readiness' },
         ].map(p => (
           <div key={p.label} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full cursor-pointer text-xs"
-            style={ background: 'var(--bg-surface)', border: '1px solid var(--border)' }
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
             onClick={() => router.push(p.href)}>
-            <span style={ width: 6, height: 6, borderRadius: '50%', background: p.color } />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.color }} />
             <span className="text-muted">{p.label}</span>
             <span className="fw-700">{p.value}</span>
           </div>
@@ -66,10 +66,10 @@ export default function AgentIAPage() {
 
       {/* Chat */}
       <div className="chat-container">
-        <div className="chat-messages" style={ minHeight: 300 }>
+        <div className="chat-messages" style={{ minHeight: 300 }}>
           {messages.map((m, i) => (
             <div key={i} className={`chat-msg ${m.role}`}>
-              <div dangerouslySetInnerHTML={ __html: m.content.replace(/\n/g, '<br/>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') } />
+              <div dangerouslySetInnerHTML={{ __html: m.content.replace(/\n/g, '<br/>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') }} />
             </div>
           ))}
         </div>

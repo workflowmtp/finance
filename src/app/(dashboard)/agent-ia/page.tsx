@@ -29,14 +29,32 @@ export default function AgentIAPage() {
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState('daf');
   const [isN8nConnected, setIsN8nConnected] = useState(false);
+
+  const getTimeStr = () => {
+    const now = new Date();
+    return now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
+
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: `**Bonjour ! Je suis FinanceAdvisor** 🤖\n\nVotre assistant financier intelligent pour MULTIPRINT S.A.\n\n**Situation flash — Mars 2025 :**\n• CA : ${formatCompact(kpis.ca)} • Trésorerie : ${formatCompact(kpis.tresorerie)}\n• Anomalies critiques : ${kpis.anomaliesCritiques} • Clôture : ${kpis.scoreCloture}% • DSF : ${kpis.scoreDSF}%\n\nPosez votre question ci-dessous.` }
+    { role: 'assistant', content: `**Bonjour ! Je suis FinanceAdvisor** 🤖\n\nVotre assistant financier intelligent pour MULTIPRINT S.A.\n\n**Situation flash — Mars 2025 :**\n• CA : ${formatCompact(kpis.ca)} • Trésorerie : ${formatCompact(kpis.tresorerie)}\n• Anomalies critiques : ${kpis.anomaliesCritiques} • Clôture : ${kpis.scoreCloture}% • DSF : ${kpis.scoreDSF}%\n\nPosez votre question ci-dessous.`, time: getTimeStr() }
   ]);
+
+  const formatChatContent = (text: string) => {
+    let html = text;
+    // Bold
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Newlines
+    html = html.replace(/\n/g, '<br/>');
+    // Bullet points avec couleur
+    html = html.replace(/• /g, '<span style="color:var(--primary);margin-right:4px;">•</span> ');
+    return html;
+  };
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
     
-    const userMessage = { role: 'user' as const, content: text };
+    const timeStr = getTimeStr();
+    const userMessage = { role: 'user' as const, content: text, time: timeStr };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
@@ -57,18 +75,18 @@ export default function AgentIAPage() {
         } else {
           setIsN8nConnected(true);
         }
-        setMessages(prev => [...prev, { role: 'assistant', content: data.text }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: data.text, time: getTimeStr() }]);
       } else {
         // Fallback local si l'API échoue
         setIsN8nConnected(false);
         const localResponse = generateLocalResponse(text);
-        setMessages(prev => [...prev, { role: 'assistant', content: localResponse }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: localResponse, time: getTimeStr() }]);
       }
     } catch (error) {
       // Fallback local en cas d'erreur
       setIsN8nConnected(false);
       const localResponse = generateLocalResponse(text);
-      setMessages(prev => [...prev, { role: 'assistant', content: localResponse }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: localResponse, time: getTimeStr() }]);
     } finally {
       setLoading(false);
     }
@@ -110,7 +128,7 @@ export default function AgentIAPage() {
             <option value="audit">Mode Audit détaillé</option>
             <option value="action">Mode Plan d&apos;action</option>
           </select>
-          <button className="btn btn-sm btn-secondary" onClick={() => setMessages([{ role: 'assistant', content: `**Bonjour ! Je suis FinanceAdvisor** 🤖\n\nVotre assistant financier intelligent pour MULTIPRINT S.A.\n\n**Situation flash — Mars 2025 :**\n• CA : ${formatCompact(kpis.ca)} • Trésorerie : ${formatCompact(kpis.tresorerie)}\n• Anomalies critiques : ${kpis.anomaliesCritiques} • Clôture : ${kpis.scoreCloture}% • DSF : ${kpis.scoreDSF}%\n\nPosez votre question ci-dessous.` }])}>🗑️ Effacer</button>
+          <button className="btn btn-sm btn-secondary" onClick={() => { setMessages([{ role: 'assistant', content: `**Bonjour ! Je suis FinanceAdvisor** 🤖\n\nVotre assistant financier intelligent pour MULTIPRINT S.A.\n\n**Situation flash — Mars 2025 :**\n• CA : ${formatCompact(kpis.ca)} • Trésorerie : ${formatCompact(kpis.tresorerie)}\n• Anomalies critiques : ${kpis.anomaliesCritiques} • Clôture : ${kpis.scoreCloture}% • DSF : ${kpis.scoreDSF}%\n\nPosez votre question ci-dessous.`, time: getTimeStr() }]); setIsN8nConnected(false); }}>🗑️ Effacer</button>
         </div>} />
       <ModuleTabs tabs={TABS} activeId="chat" />
 
@@ -135,12 +153,12 @@ export default function AgentIAPage() {
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs" style={{ marginLeft: 'auto', background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
           {isN8nConnected ? (
             <>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} />
-              <span className="text-success">n8n connecté</span>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
+              <span className="text-success">API Anthropic</span>
             </>
           ) : (
             <>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--warning)' }} />
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#F59E0B' }} />
               <span className="text-warning">Mode local</span>
             </>
           )}
@@ -152,16 +170,27 @@ export default function AgentIAPage() {
         <div className="chat-messages" style={{ minHeight: 300 }}>
           {messages.map((m, i) => (
             <div key={i} className={`chat-msg ${m.role}`}>
-              <div dangerouslySetInnerHTML={{ __html: m.content.replace(/\n/g, '<br/>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') }} />
-              <div className="chat-msg-time">{new Date().toLocaleDateString('fr-FR')} {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
+              <div dangerouslySetInnerHTML={{ __html: formatChatContent(m.content) }} />
+              <div className="chat-msg-time">{m.time}</div>
             </div>
           ))}
+          {loading && (
+            <div className="chat-msg assistant">
+              <div style={{ display: 'flex', gap: 4, padding: '4px 0' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-muted)', animation: 'pulse-dot 1s infinite' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-muted)', animation: 'pulse-dot 1s infinite 0.2s' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-muted)', animation: 'pulse-dot 1s infinite 0.4s' }} />
+              </div>
+            </div>
+          )}
         </div>
-        <div className="chat-suggestions">
-          {SUGGESTIONS.map((s, i) => (
-            <button key={i} className="chat-suggestion-chip" onClick={() => sendMessage(s)}>{s}</button>
-          ))}
-        </div>
+        {messages.length < 4 && (
+          <div className="chat-suggestions">
+            {SUGGESTIONS.map((s, i) => (
+              <button key={i} className="chat-suggestion-chip" onClick={() => sendMessage(s)}>{s}</button>
+            ))}
+          </div>
+        )}
         <div className="chat-input-area">
           <textarea className="chat-input" placeholder="Posez votre question à FinanceAdvisor..."
             rows={1} value={input} onChange={e => setInput(e.target.value)}

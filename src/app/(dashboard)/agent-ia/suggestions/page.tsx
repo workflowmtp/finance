@@ -7,18 +7,18 @@ const TABS = [
   { id: 'syntheses', label: 'Synthèses', icon: '📊', href: '/agent-ia/syntheses' },
 ];
 const CATEGORIES = [
-  { titre: '🔍 Anomalies & Audit', questions: ['Quelles anomalies critiques ?', 'Quel utilisateur à risque ?', 'Signaux de fraude ?', 'Anomalies bloquant la clôture ?'] },
-  { titre: '💰 Trésorerie', questions: ['Flash trésorerie DG', 'Semaine la plus tendue ?', 'Encaissements à attendre ?', 'Besoin de financement ?'] },
-  { titre: '📞 Recouvrement', questions: ['Client à relancer en priorité ?', 'Plan de relance du jour', 'Clients en contentieux ?', 'Impact si SABC paie ?'] },
-  { titre: '📋 Clôture & DSF', questions: ['État de la clôture ?', 'Tâches bloquant la DSF ?', 'Jours pour finaliser ?', 'Corrections avant le 15 ?'] },
-  { titre: '📈 Analytique', questions: ['Marge par pôle ?', 'Pourquoi marge Hélio baisse ?', 'Sources des écarts ?', 'Meilleur pôle ?'] },
-  { titre: '⚖️ Fiscalité', questions: ['Taxes à provisionner ?', 'Score conformité ?', 'Corrections TVA ?', 'Mémo fiscal du mois'] },
+  { titre: '🔍 Anomalies & Audit', questions: ['Quelles sont les anomalies critiques du mois ?', 'Quel utilisateur présente le plus de risques ?', 'Y a-t-il des signaux de fraude ?', 'Quelles anomalies bloquent la clôture ?'] },
+  { titre: '💰 Trésorerie', questions: ['Prépare-moi un flash trésorerie DG', 'Quelle semaine est la plus tendue ?', 'Quels encaissements attendre cette semaine ?', 'Faut-il prévoir un financement court terme ?'] },
+  { titre: '📞 Recouvrement', questions: ['Quel client relancer en priorité ?', 'Génère un plan de relance du jour', 'Quels clients sont en contentieux ?', 'Quel est l\'impact trésorerie si SABC paie cette semaine ?'] },
+  { titre: '📋 Clôture & DSF', questions: ['Où en est la clôture de mars ?', 'Quelles tâches bloquent la DSF ?', 'Combien de jours de travail pour finaliser la DSF ?', 'Que corriger avant le 15 du mois ?'] },
+  { titre: '📈 Analytique & Performance', questions: ['Quelle marge par pôle ce mois ?', 'Pourquoi la marge Hélio est en baisse ?', 'Quelles sont les sources d\'écarts de marge ?', 'Quel pôle performe le mieux ?'] },
+  { titre: '⚖️ Fiscalité & Conformité', questions: ['Quelles taxes restent à provisionner ?', 'Quel est le score de conformité OHADA ?', 'Quelles corrections avant le dépôt TVA ?', 'Fais un mémo fiscal du mois'] },
 ];
 export default function SuggestionsPage() {
   const router = useRouter();
   return (
     <div>
-      <PageHeader breadcrumb="Agent IA ▸ Suggestions" title="Questions Suggérées" subtitle="24 questions organisées par domaine" />
+      <PageHeader breadcrumb="Agent IA ▸ Questions suggérées" title="Questions Suggérées" subtitle="24 exemples de questions organisées par domaine" />
       <ModuleTabs tabs={TABS} activeId="suggestions" />
       <div className="grid grid-cols-2 gap-5">
         {CATEGORIES.map(cat => (

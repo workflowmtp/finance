@@ -12,15 +12,15 @@ export default function SynthesesPage() {
   const router = useRouter();
   const kpis = getDashboardKpis();
   const syntheses = [
-    { titre: 'Flash Trésorerie DG', icon: '💰', mode: 'Synthèse DG', contenu: `Position : ${formatCompact(kpis.tresorerie)}. Tension S15. Créances mobilisables : ${formatCompact(kpis.creancesEchues)}.`, href: '/tresorerie' },
-    { titre: 'Point Anomalies', icon: '🔍', mode: 'Synthèse DAF', contenu: `${kpis.anomaliesCritiques} anomalies critiques ouvertes. Priorité : SAPPI, compte 470000, séquence VE.`, href: '/dashboard/alertes' },
-    { titre: 'Readiness DSF', icon: '📑', mode: 'Plan d\'action', contenu: `Score DSF : ${kpis.scoreDSF}%. P1 : rapprochements, provisions, factures.`, href: '/dsf/readiness' },
-    { titre: 'Plan Relance Clients', icon: '📞', mode: 'Plan d\'action', contenu: `Créances échues : ${formatCompact(kpis.creancesEchues)}. Top relances : SODECOTON, SCTM, CICAM.`, href: '/recouvrement/risques' },
-    { titre: 'Conformité OHADA', icon: '⚖️', mode: 'Audit', contenu: `Score : ${kpis.scoreConformite}%. 4 alertes, 1 non-conformité. Compte 691500 invalide.`, href: '/fiscalite/controles' },
+    { titre: 'Flash Trésorerie DG', icon: '💰', date: '28/03/2025', mode: 'Synthèse DG', contenu: `Position bancaire : ${formatMontant(kpis.tresorerie)}. Tension S15 (07-13 avril) : décaissements impôts + salaires. Créances échues mobilisables : ${formatMontant(kpis.creancesEchues)}. Relancer SABC et CICAM en priorité.`, href: '/tresorerie', question: 'Détaille le flash trésorerie avec recommandations' },
+    { titre: 'Point Anomalies Critiques', icon: '🔍', date: '28/03/2025', mode: 'Synthèse DAF', contenu: `${kpis.anomaliesCritiques} anomalies critiques. Impact estimé : 125M FCFA. Priorité : SAPPI (18j retard), compte 470000 (45j), rupture séquence VE.`, href: '/dashboard/alertes', question: 'Détaille les anomalies critiques et le plan de traitement' },
+    { titre: 'Readiness DSF', icon: '📑', date: '28/03/2025', mode: 'Plan d\'action', contenu: `Score DSF : ${kpis.scoreDSF}%. 5 tableaux à risque. ~${Math.round((100 - kpis.scoreDSF) / 8)} jours-homme restants. P1 : rapprochements (T5), provisions (T9), factures (T3/T16).`, href: '/dsf/readiness', question: 'Combien de jours pour finaliser la DSF et quel est le chemin critique ?' },
+    { titre: 'Plan de Relance Clients', icon: '📞', date: '28/03/2025', mode: 'Plan d\'action', contenu: `Créances échues : ${formatMontant(kpis.creancesEchues)}. 2 client(s) en contentieux. Top 3 relances : SODECOTON (56M contentieux), SCTM (42M bloqué), CICAM (mise en demeure).`, href: '/recouvrement/risques', question: 'Génère un plan de relance détaillé pour la semaine' },
+    { titre: 'Conformité OHADA', icon: '⚖️', date: '28/03/2025', mode: 'Audit détaillé', contenu: `Score : ${kpis.scoreConformite}%. 4 alertes, 1 non-conformité. Compte 691500 invalide (charge inactive). Corrections requises avant DSF.`, href: '/fiscalite/controles', question: 'Détaille les points de non-conformité OHADA' },
   ];
   return (
     <div>
-      <PageHeader breadcrumb="Agent IA ▸ Synthèses" title="Synthèses Générées" subtitle="Rapports automatiques" />
+      <PageHeader breadcrumb="Agent IA ▸ Synthèses" title="Synthèses Générées" subtitle="Rapports automatiques par FinanceAdvisor" />
       <ModuleTabs tabs={TABS} activeId="syntheses" />
       {syntheses.map((s, i) => (
         <Widget key={i} className="mb-4">
@@ -28,6 +28,7 @@ export default function SynthesesPage() {
             <span className="widget-title">{s.icon} {s.titre}</span>
             <span className="badge badge-en-cours">{s.mode}</span>
           </div>
+          <div className="text-xs text-muted px-4 pt-2">{s.date}</div>
           <div className="text-sm p-4" style={{ lineHeight: 1.8 }}>{s.contenu}</div>
           <div className="flex justify-between items-center p-3" style={{ borderTop: '1px solid var(--border-light)' }}>
             <span className="text-xs text-muted">Généré automatiquement</span>

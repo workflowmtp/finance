@@ -24,7 +24,7 @@ export default function SuggestionsPage() {
         {CATEGORIES.map(cat => (
           <Widget key={cat.titre} title={cat.titre}>
             {cat.questions.map((q, i) => (
-              <div key={i} className="py-2 cursor-pointer" style={ borderBottom: '1px solid var(--border-light)' }
+              <div key={i} className="py-2 cursor-pointer" style={{ borderBottom: '1px solid var(--border-light)' }}
                 onClick={() => router.push('/agent-ia')}>
                 <span className="text-sm text-primary mr-1">→</span><span className="text-sm">{q}</span>
               </div>

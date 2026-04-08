@@ -27,7 +27,6 @@ export default function AgentIAPage() {
   const kpis = getDashboardKpis();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState('daf');
   const [isN8nConnected, setIsN8nConnected] = useState(false);
 
   const getTimeStr = () => {
@@ -63,7 +62,7 @@ export default function AgentIAPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMessage], mode }),
+        body: JSON.stringify({ messages: [...messages, userMessage] }),
       });
 
       const data = await res.json();
@@ -121,13 +120,6 @@ export default function AgentIAPage() {
     <div>
       <PageHeader breadcrumb="Agent IA ▸ Chat" title="🤖 Agent IA FinanceAdvisor"
         actions={<div className="flex items-center gap-2">
-          <select className="filter-select" style={{ minWidth: 160 }} value={mode} onChange={e => setMode(e.target.value)}>
-            <option value="daf">Mode Synthèse DAF</option>
-            <option value="dg">Mode Synthèse DG</option>
-            <option value="pedagogique">Mode Pédagogique</option>
-            <option value="audit">Mode Audit détaillé</option>
-            <option value="action">Mode Plan d&apos;action</option>
-          </select>
           <button className="btn btn-sm btn-secondary" onClick={() => { setMessages([{ role: 'assistant', content: `**Bonjour ! Je suis FinanceAdvisor** 🤖\n\nVotre assistant financier intelligent pour MULTIPRINT S.A.\n\n**Situation flash — Mars 2025 :**\n• CA : ${formatCompact(kpis.ca)} • Trésorerie : ${formatCompact(kpis.tresorerie)}\n• Anomalies critiques : ${kpis.anomaliesCritiques} • Clôture : ${kpis.scoreCloture}% • DSF : ${kpis.scoreDSF}%\n\nPosez votre question ci-dessous.`, time: getTimeStr() }]); setIsN8nConnected(false); }}>🗑️ Effacer</button>
         </div>} />
       <ModuleTabs tabs={TABS} activeId="chat" />

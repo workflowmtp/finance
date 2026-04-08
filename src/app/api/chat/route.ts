@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, mode } = await req.json();
+    const { messages } = await req.json();
 
     // n8n Webhook configuration
     const webhookUrl = process.env.N8N_WEBHOOK_URL;
@@ -12,17 +12,17 @@ export async function POST(req: NextRequest) {
 
     if (!webhookUrl) {
       // Mode local - retourner une réponse générée localement
-      const localResponse = generateLocalResponse(messages, mode);
+      const localResponse = generateLocalResponse(messages);
       return NextResponse.json({ text: localResponse, mode: 'local' });
     }
 
     // Build system prompt with live data (fallback si Prisma échoue)
     let systemPrompt = '';
     try {
-      systemPrompt = await buildSystemPrompt(mode);
+      systemPrompt = await buildSystemPrompt();
     } catch (dbError) {
       console.error('Erreur buildSystemPrompt (Prisma):', dbError);
-      systemPrompt = buildFallbackSystemPrompt(mode);
+      systemPrompt = buildFallbackSystemPrompt();
     }
 
     // Prepare Basic Auth header
@@ -42,7 +42,6 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         system: systemPrompt,
         messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
-        mode,
       }),
     });
 
@@ -52,7 +51,7 @@ export async function POST(req: NextRequest) {
       const errorText = await response.text();
       console.error('Erreur webhook:', response.status, errorText);
       // Fallback local au lieu d'erreur 500
-      const localResponse = generateLocalResponse(messages, mode);
+      const localResponse = generateLocalResponse(messages);
       return NextResponse.json({ text: localResponse, mode: 'local' });
     }
 
@@ -68,7 +67,7 @@ export async function POST(req: NextRequest) {
       if (responseText.trim()) {
         return NextResponse.json({ text: responseText });
       }
-      const localResponse = generateLocalResponse(messages, mode);
+      const localResponse = generateLocalResponse(messages);
       return NextResponse.json({ text: localResponse, mode: 'local' });
     }
 
@@ -106,8 +105,8 @@ export async function POST(req: NextRequest) {
     console.error('Erreur API chat:', error);
     // En cas d'erreur, retourner un fallback local au lieu d'une erreur 500
     try {
-      const { messages, mode } = await req.clone().json();
-      const localResponse = generateLocalResponse(messages, mode);
+      const { messages } = await req.clone().json();
+      const localResponse = generateLocalResponse(messages);
       return NextResponse.json({ text: localResponse, mode: 'local' });
     } catch {
       return NextResponse.json({ text: 'Désolé, une erreur est survenue. Veuillez réessayer.', mode: 'local' });
@@ -115,39 +114,21 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function buildFallbackSystemPrompt(mode: string): string {
-  let sp = `Tu es FinanceAdvisor, agent IA expert en comptabilité, finance et audit pour MULTIPRINT S.A. (Douala, Cameroun).
+function buildFallbackSystemPrompt(): string {
+  return `Tu es FinanceAdvisor, agent IA expert en comptabilité, finance et audit pour MULTIPRINT S.A. (Douala, Cameroun).
 Référentiel : OHADA / SYSCOHADA révisé. Monnaie : FCFA (XAF), TVA : 19,25%.
 4 pôles : Offset Étiquette, Héliogravure Flexible, Offset Carton, Bouchon Couronne.
-ERP : Sage X3 — Exercice 2025, mois : Mars.`;
+ERP : Sage X3 — Exercice 2025, mois : Mars.
 
-  const modeInstructions: Record<string, string> = {
-    dg: 'MODE : Synthèse DG — 5-7 lignes, chiffres clés, décisions requises.',
-    daf: 'MODE : Synthèse DAF — Détaillé mais synthétique, actions prioritaires.',
-    pedagogique: 'MODE : Pédagogique — Explications claires, références OHADA.',
-    audit: 'MODE : Audit détaillé — Exhaustif, preuves, recommandations.',
-    action: 'MODE : Plan d\'action — Liste numérotée, responsable, échéance.',
-  };
-
-  sp += '\n' + (modeInstructions[mode] || modeInstructions.daf);
-  sp += '\n\nRéponds en français, de manière professionnelle et orientée action.';
-  return sp;
+Réponds en français, de manière professionnelle et orientée action.`;
 }
 
 // Génération de réponse locale en cas d'absence de webhook
-function generateLocalResponse(messages: any[], mode: string): string {
+function generateLocalResponse(messages: any[]): string {
   const lastMessage = messages.filter(m => m.role === 'user').pop();
   const question = lastMessage?.content?.toLowerCase() || '';
   
-  const modePrefix: Record<string, string> = {
-    dg: '**Synthèse DG** — ',
-    daf: '**Synthèse DAF** — ',
-    pedagogique: '**Explication pédagogique** — ',
-    audit: '**Audit détaillé** — ',
-    action: '**Plan d\'action** — ',
-  };
-  
-  const prefix = modePrefix[mode] || modePrefix.daf;
+  const prefix = '**FinanceAdvisor** — ';
   
   if (question.includes('anomal') || question.includes('critique')) {
     return `${prefix}Il y a actuellement **3 anomalies critiques** ouvertes.\n\nPriorités :\n• SAPPI : 18 jours de retard\n• Compte 470000 : 45 jours non lettré\n• Rupture séquence VE\n\nImpact estimé : 125M FCFA. Je recommande de traiter SAPPI en priorité.`;
@@ -180,7 +161,7 @@ Action immédiate : Contacter SODECOTON pour négocier un échéancier.`;
   return `${prefix}Je n'ai pas de données spécifiques pour cette question.\n\nConnectez le webhook n8n dans Paramétrage > Config IA pour des réponses personnalisées basées sur vos données en temps réel.\n\nEn mode local, je peux répondre aux questions sur : anomalies, trésorerie, recouvrement, clôture, analytique, fiscalité.`;
 }
 
-async function buildSystemPrompt(mode: string): Promise<string> {
+async function buildSystemPrompt(): Promise<string> {
   // Fetch live data from database
   const [anomalies, clients, poles, taches, dsf, echeances, comptes] = await Promise.all([
     prisma.anomalie.findMany({ where: { statut: { not: 'resolu' } } }),
@@ -220,17 +201,7 @@ TOP CLIENTS À RISQUE :
 ${clients.sort((a, b) => b.scoreRisque - a.scoreRisque).slice(0, 5).map(c => `- ${c.raisonSociale} : score ${c.scoreRisque}/100, échu ${c.echeanceEchue.toLocaleString('fr-FR')} FCFA`).join('\n')}
 `;
 
-  // Mode instruction
-  const modeInstructions: Record<string, string> = {
-    dg: 'MODE : Synthèse DG — 5-7 lignes, chiffres clés, décisions requises.',
-    daf: 'MODE : Synthèse DAF — Détaillé mais synthétique, actions prioritaires.',
-    pedagogique: 'MODE : Pédagogique — Explications claires, références OHADA.',
-    audit: 'MODE : Audit détaillé — Exhaustif, preuves, recommandations.',
-    action: 'MODE : Plan d\'action — Liste numérotée, responsable, échéance.',
-  };
-
-  sp += '\n' + (modeInstructions[mode] || modeInstructions.daf);
-  sp += '\n\nRéponds en français, de manière professionnelle et orientée action.';
+  sp += '\nRéponds en français, de manière professionnelle et orientée action.';
 
   return sp;
 }

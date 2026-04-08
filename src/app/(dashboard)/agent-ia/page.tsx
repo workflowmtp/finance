@@ -81,7 +81,7 @@ export default function AgentIAPage() {
         <div className="chat-input-area">
           <textarea className="chat-input" placeholder="Posez votre question à FinanceAdvisor..."
             rows={1} value={input} onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); }} />
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }} />
           <button className="chat-send-btn" onClick={() => sendMessage(input)}>➤</button>
         </div>
       </div>

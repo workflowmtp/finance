@@ -8,7 +8,7 @@ interface Tab {
   icon?: string;
   badge?: string | number;
   badgeColor?: string;
-  href: string;
+  href?: string;
 }
 
 interface ModuleTabsProps {
@@ -25,7 +25,7 @@ export default function ModuleTabs({ tabs, activeId }: ModuleTabsProps) {
         <button
           key={tab.id}
           className={`dash-tab ${tab.id === activeId ? 'active' : ''}`}
-          onClick={() => router.push(tab.href)}
+          onClick={() => { if (tab.href) router.push(tab.href); }}
         >
           {tab.icon} {tab.label}
           {tab.badge !== undefined && (

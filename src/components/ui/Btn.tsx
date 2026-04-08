@@ -10,6 +10,7 @@ interface BtnProps {
   onClick?: () => void;
   children: ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 const VARIANTS = {
@@ -23,7 +24,7 @@ const SIZES = {
   md: 'px-4 py-2 text-sm',
 };
 
-export default function Btn({ variant = 'secondary', size = 'sm', href, onClick, children, className }: BtnProps) {
+export default function Btn({ variant = 'secondary', size = 'sm', href, onClick, children, className, style }: BtnProps) {
   const router = useRouter();
 
   const handleClick = () => {
@@ -37,7 +38,7 @@ export default function Btn({ variant = 'secondary', size = 'sm', href, onClick,
       className={`inline-flex items-center gap-1.5 font-medium rounded-lg border transition-all cursor-pointer
         ${VARIANTS[variant]} ${SIZES[size]} ${className || ''}
       `}
-      style={{ color: variant === 'secondary' ? 'var(--text-primary)' : undefined }}
+      style={{ color: variant === 'secondary' ? 'var(--text-primary)' : undefined, ...style }}
     >
       {children}
     </button>

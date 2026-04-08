@@ -117,7 +117,7 @@ export default function DsfAlertesPage() {
               <div key={a.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => router.push('/dashboard/alertes')}>
                 <span className={`badge ${a.gravite === 'critique' ? 'badge-critique' : 'badge-eleve'}`}>{a.gravite === 'critique' ? 'Critique' : 'Élevé'}</span>
                 <span className="fs-sm" style={{ flex: 1 }}>{a.titre}</span>
-                {dsfImp.length > 0 && dsfImp.map((t: string) => <span key={t} className="badge badge-eleve" style={{ padding: '1px 4px', fontSize: '8px', marginRight: '2px' }}>T{t}</span>)}
+                {dsfImp.length > 0 && dsfImp.map((t: number) => <span key={t} className="badge badge-eleve" style={{ padding: '1px 4px', fontSize: '8px', marginRight: '2px' }}>T{t}</span>)}
                 <span className="cell-mono fs-xs text-muted">{a.id}</span>
               </div>
             );

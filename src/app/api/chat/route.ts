@@ -16,50 +16,122 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ text: localResponse, mode: 'local' });
     }
 
-    // Build system prompt with live data
-    const systemPrompt = await buildSystemPrompt(mode);
+    // Build system prompt with live data (fallback si Prisma échoue)
+    let systemPrompt = '';
+    try {
+      systemPrompt = await buildSystemPrompt(mode);
+    } catch (dbError) {
+      console.error('Erreur buildSystemPrompt (Prisma):', dbError);
+      systemPrompt = buildFallbackSystemPrompt(mode);
+    }
 
     // Prepare Basic Auth header
-    const credentials = Buffer.from(`${webhookUser}:${webhookPassword}`).toString('base64');
+    const authHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (webhookUser && webhookPassword) {
+      const credentials = Buffer.from(`${webhookUser}:${webhookPassword}`).toString('base64');
+      authHeaders['Authorization'] = `Basic ${credentials}`;
+    }
 
     // Call n8n webhook
+    console.log('Appel n8n webhook:', webhookUrl);
     const response = await fetch(webhookUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${credentials}`,
-      },
+      headers: authHeaders,
       body: JSON.stringify({
         system: systemPrompt,
-        messages,
+        messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
         mode,
       }),
     });
 
+    console.log('Réponse n8n status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
-      return NextResponse.json({ error: `Webhook error: ${response.status} - ${errorText}` }, { status: 500 });
+      console.error('Erreur webhook:', response.status, errorText);
+      // Fallback local au lieu d'erreur 500
+      const localResponse = generateLocalResponse(messages, mode);
+      return NextResponse.json({ text: localResponse, mode: 'local' });
     }
 
-    const data = await response.json();
+    // Parse la réponse n8n
+    const responseText = await response.text();
+    console.log('Réponse n8n brute:', responseText.substring(0, 200));
+    
+    let data: any;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      // Si la réponse n'est pas du JSON, c'est peut-être du texte brut
+      if (responseText.trim()) {
+        return NextResponse.json({ text: responseText });
+      }
+      const localResponse = generateLocalResponse(messages, mode);
+      return NextResponse.json({ text: localResponse, mode: 'local' });
+    }
 
-    // Handle n8n response - adjust based on your n8n workflow output format
+    // Handle n8n response - gérer plusieurs formats possibles
+    // Format 1: { text: "..." } ou { response: "..." } ou { message: "..." }
     if (data.text || data.response || data.message) {
       return NextResponse.json({ text: data.text || data.response || data.message });
     }
 
-    if (data.content) {
+    // Format 2: { output: "..." } (n8n AI Agent)
+    if (data.output) {
+      return NextResponse.json({ text: data.output });
+    }
+
+    // Format 3: { content: [{ type: "text", text: "..." }] } (format Anthropic)
+    if (data.content && Array.isArray(data.content)) {
       const text = data.content
         .filter((c: any) => c.type === 'text')
         .map((c: any) => c.text)
         .join('');
+      if (text) return NextResponse.json({ text });
+    }
+
+    // Format 4: tableau de résultats n8n [{ "output": "..." }]
+    if (Array.isArray(data) && data.length > 0) {
+      const first = data[0];
+      const text = first.text || first.response || first.message || first.output || JSON.stringify(first);
       return NextResponse.json({ text });
     }
 
-    return NextResponse.json({ error: 'Unexpected response from webhook' }, { status: 500 });
+    // Dernier recours - retourner le JSON brut
+    console.warn('Format de réponse n8n non reconnu:', JSON.stringify(data).substring(0, 200));
+    return NextResponse.json({ text: JSON.stringify(data), mode: 'local' });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message, fallback: true }, { status: 500 });
+    console.error('Erreur API chat:', error);
+    // En cas d'erreur, retourner un fallback local au lieu d'une erreur 500
+    try {
+      const { messages, mode } = await req.clone().json();
+      const localResponse = generateLocalResponse(messages, mode);
+      return NextResponse.json({ text: localResponse, mode: 'local' });
+    } catch {
+      return NextResponse.json({ text: 'Désolé, une erreur est survenue. Veuillez réessayer.', mode: 'local' });
+    }
   }
+}
+
+function buildFallbackSystemPrompt(mode: string): string {
+  let sp = `Tu es FinanceAdvisor, agent IA expert en comptabilité, finance et audit pour MULTIPRINT S.A. (Douala, Cameroun).
+Référentiel : OHADA / SYSCOHADA révisé. Monnaie : FCFA (XAF), TVA : 19,25%.
+4 pôles : Offset Étiquette, Héliogravure Flexible, Offset Carton, Bouchon Couronne.
+ERP : Sage X3 — Exercice 2025, mois : Mars.`;
+
+  const modeInstructions: Record<string, string> = {
+    dg: 'MODE : Synthèse DG — 5-7 lignes, chiffres clés, décisions requises.',
+    daf: 'MODE : Synthèse DAF — Détaillé mais synthétique, actions prioritaires.',
+    pedagogique: 'MODE : Pédagogique — Explications claires, références OHADA.',
+    audit: 'MODE : Audit détaillé — Exhaustif, preuves, recommandations.',
+    action: 'MODE : Plan d\'action — Liste numérotée, responsable, échéance.',
+  };
+
+  sp += '\n' + (modeInstructions[mode] || modeInstructions.daf);
+  sp += '\n\nRéponds en français, de manière professionnelle et orientée action.';
+  return sp;
 }
 
 // Génération de réponse locale en cas d'absence de webhook

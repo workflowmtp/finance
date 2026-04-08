@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const [identifiant, setIdentifiant] = useState('');
+  const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ export default function LoginPage() {
     setError('');
 
     const res = await signIn('credentials', {
-      identifiant,
+      email,
       motDePasse,
       redirect: false,
     });
@@ -32,10 +32,10 @@ export default function LoginPage() {
   };
 
   const quickLogins = [
-    { label: 'Admin', id: 'admin', pw: 'Admin@1234' },
-    { label: 'DG', id: 'dg', pw: 'Dg@1234' },
-    { label: 'DAF', id: 'daf', pw: 'Daf@1234' },
-    { label: 'Chef', id: 'chef', pw: 'Chef@1234' },
+    { label: 'Admin', email: 'admin@multiprint.com', pw: 'Admin@1234' },
+    { label: 'DG', email: 'dg@multiprint.com', pw: 'Dg@1234' },
+    { label: 'DAF', email: 'daf@multiprint.com', pw: 'Daf@1234' },
+    { label: 'Chef', email: 'chef@multiprint.com', pw: 'Chef@1234' },
   ];
 
   return (
@@ -53,14 +53,14 @@ export default function LoginPage() {
         {/* Form */}
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-secondary)' }}>Identifiant</label>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-secondary)' }}>Email</label>
             <input
-              type="text"
-              value={identifiant}
-              onChange={(e) => setIdentifiant(e.target.value)}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-lg text-sm outline-none transition-all"
               style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-              placeholder="admin"
+              placeholder="admin@multiprint.com"
               autoFocus
             />
           </div>
@@ -96,8 +96,8 @@ export default function LoginPage() {
           <div className="grid grid-cols-4 gap-2">
             {quickLogins.map((q) => (
               <button
-                key={q.id}
-                onClick={() => { setIdentifiant(q.id); setMotDePasse(q.pw); }}
+                key={q.email}
+                onClick={() => { setEmail(q.email); setMotDePasse(q.pw); }}
                 className="py-2 rounded-lg text-xs font-medium transition-all hover:border-emerald-500"
                 style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
               >
